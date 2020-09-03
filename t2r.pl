@@ -17,7 +17,6 @@
 use strict;
 use warnings;
 use feature qw/say switch/;
-use encoding 'utf8';
 use utf8;
 
 use WWW::Mechanize;
@@ -35,14 +34,20 @@ OUT->autoflush(1);
 $| = 1;
 
 my $mech = new WWW::Mechanize;
-$mech->get('http://www.guidetojapanese.org/learn/grammar');
+# $mech->get('http://www.guidetojapanese.org/learn/grammar');
+
 my $tree = new HTML::TreeBuilder;
-$tree->parse_content($mech->content);
-my $node = $tree->look_down("_tag", "h2", sub { $_[0]->as_text() eq 'Table of Contents' } )->right;
+my $fh;
+my $contentstext;
+# don't bother trying to get the whole TOC, just read it from a file.
+open($fh, "<:encoding(UTF-8)", "examplecontents.html");
+read($fh, $contentstext, -s $fh);
+$tree->parse_content($contentstext);
+my $node = $tree->look_down("_tag", "h2", sub { $_[0]->as_text() eq 'Content' } )->right;
 
 binmode OUT, ':utf8';
-#process_url('http://www.guidetojapanese.org/learn/grammar/past_tense', 0, *OUT, "Dingens");
-walk_toc($node, 0, *OUT);
+#process_url('http://www.guidetojapanese.org/learn/grammar/causepass', 0, *OUT, "Dingens");
+walk_toc($node, -1, *OUT); # dunno why I need to go -1, I guess the toc structure changed
 close(OUT);
 
 $tree->delete();
@@ -52,8 +57,13 @@ sub walk_toc {
 
 	my @nodes = $tree->content_list();
 	foreach my $node (@nodes) {
+		my $nodeclass = $node->attr("class");
+		if ($nodeclass and $nodeclass eq "sym"){
+			# if we've walked into a fancy styling bit with no info, back out
+			return;
+		}
 		my $tag = $node->tag;
-		if ($tag eq 'li') {
+		if ($tag eq 'li' or $tag eq 'div' or $tag eq 'span') {
 			walk_toc($node, $level, $outfile);
 		} elsif ($tag eq 'ol' or $tag eq 'ul') {
 			walk_toc($node, $level + 1, $outfile);
@@ -73,7 +83,7 @@ sub process_url {
 	my ($url, $level, $outfile, $title) = @_;
 #	say "Processing: $url";
 	my $identifier;
-	$identifier = $1 if ($url =~ m@/([^/]+?)$@);
+	$identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
 	open(PARTOUT, '>', "$identifier.tex") or die "Opening $identifier.tex failed: $! $?";
 	binmode PARTOUT, ':utf8';
 	my $tree = new HTML::TreeBuilder;
@@ -89,7 +99,7 @@ sub process_url {
 #	print $htmlcontent;
 	$tree->parse_content($htmlcontent);
 	#$tree->dump;
-	my $content = $tree->look_down( "_tag", "div", "class", "content clear-block" );
+	my $content = $tree->look_down( "_tag", "div", "class", "entry-content" );
 #	$content->dump;
 	say PARTOUT make_heading($level, $title);
 	say PARTOUT tree_to_latex($content, $level + 1);
@@ -130,7 +140,8 @@ sub tree_to_latex {
 			if (elem_in_list('summary', \@classes)) {
 				$latex .= "\\textbf{";
 				$close = 1;
-			} elsif (elem_in_list('popup', \@classes) or $class eq '') {
+			} elsif (elem_in_list('popup', \@classes) or $class eq '' or elem_in_list('toc_number', \@classes)) {
+				# don't transcribe popups, empties or contents sections
 			} else {
 				carp "Unknown span type $class";
 			}
@@ -143,7 +154,8 @@ sub tree_to_latex {
 				my $sumelem = $tree->look_down('_tag', 'span', 'class', 'summary');
 				if ($sumelem) {
 					$title = get_node_as_text($sumelem);
-					$sumelem->right->delete() if ($sumelem->right->tag eq 'br');
+					# One of the summary boxes has some Non breaking spaces which seems to upset the parser
+					$sumelem->right->delete() if (ref($sumelem->right) eq "HTML::Element" and $sumelem->right->tag eq 'br');
 					$sumelem->delete();
 				}
 				$latex .= "\\begin{tkbasebox}%\n\\node[tkbox](box){%\n\\begin{tkinsidebox}%\n";
@@ -151,6 +163,11 @@ sub tree_to_latex {
 			} elsif (elem_in_list('node-author', \@classes) or elem_in_list('book-navigation', \@classes)) {
 				return "";
 			} elsif (elem_in_list('content', \@classes) and elem_in_list('clear-block', \@classes)) {
+			} elsif (elem_in_list('toc_transparent', \@classes) or elem_in_list('sharedaddy', \@classes) or elem_in_list('sd-social', \@classes) or elem_in_list('sd-content', \@classes)) {
+				return "";
+				# skip toc, sharing
+			} elsif (elem_in_list('entry-content', \@classes)) {
+				# process as normal, this is the wrapper class for the article
 			} else {
 				carp "Unknown div type $class";
 				$tree->dump;
@@ -160,6 +177,9 @@ sub tree_to_latex {
 			if (check_img($tree->attr('src'))) {
 				return "\\begin{center}\\includegraphics[width=0.5\\textwidth]{" . download_img($tree->attr('src')) . "}\\end{center}";
 			}
+		}
+		when ("iframe") {
+			return "Web Resource:~\\url{" . $tree->attr("src") . "}\n";
 		}
 		when ("ul") {
 			$latex .= "\\begin{itemize}\n";
@@ -189,13 +209,29 @@ sub tree_to_latex {
 			$end = "center";
 #			return "\\hfill " . escape_tex($tree->as_text()) . " \\hfill\\hbox{}\n";
 		}
-		when ("table") {
+		when (/table|tbody/) {
 			# Analyze layout
 			my @subtables = $tree->look_down('_tag', 'table');
 			# Only give horizontal lines to tables which do not have subtables
 			$$context{'table_has_hlines'} = (scalar @subtables <= 1); # Own tag also counts as table
+			# one of the tables has an annoying div. Skip it.
+			my $baddiv = $tree->find_by_tag_name('div');
+			if($baddiv and $baddiv->attr('style') eq 'position: absolute; left: -7724px; top: 0;'){
+				say "Bad Div detected at $context";
+				$baddiv->delete();
+			}
+			my $possibletbody = $tree->find_by_tag_name('tbody');
+			if($possibletbody and !$possibletbody->is_empty()){
+				# some tables have a tbody, some have an empty tbody which we should ignore
+				$tree = $possibletbody;
+			}
 			# Count one row of columns
 			my @trs = get_node_sub_tags($tree, "tr");
+			if(scalar @trs eq 0){
+				# there are now rows, so don't bother
+				say "Table with no rows detected at $context";
+				return "";
+			}
 			my @tds = find_first_subs_in_array(\@trs, ["td", "th"]);
 			my @specs;
 			push @specs, "c" foreach (@tds);
@@ -241,6 +277,12 @@ sub tree_to_latex {
 					$after = " (\\url{" . escape_tex($uri->as_string, 1) . "})";
 				}
 			}
+		}
+		when("fieldset") {
+			return ""; # skip navigation
+		}
+		when("noscript") {
+			return ""; # skip noscripts
 		}
 		default {
 			carp "Unknown tag " . $tag;
@@ -509,5 +551,3 @@ sub download_img {
 
 	return $new_filename;
 }
-
-
