@@ -72,6 +72,7 @@ sub walk_toc {
 			# Skip exercises for now
 			next if ($text =~ m/\bExercises\s*$/);
 			say "+ " x ($level + 1), $text;
+			download_url($node->attr("href"));
 			process_url($node->attr("href"), $level, $outfile, $text);
 		} else {
 			carp "Unknown TOC tag $tag";
@@ -79,17 +80,34 @@ sub walk_toc {
 	}
 }
 
+sub download_url {
+	#  write it to a file to alleviate strain on the server
+	my ($url) = @_;
+	my $identifier;
+	$identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
+	if(-e "raw_html/$identifier.html"){
+		# we already downloaded it, don't do it again
+		return;
+	}
+	say "Can't find $identifier, DL'ing it";
+	my $mech = new WWW::Mechanize;
+	$mech->get($url);
+	open(my $htmlfh, ">:encoding(UTF-8)", "raw_html/$identifier.html");
+	say $htmlfh $mech->content;
+	close $htmlfh;
+}
+
 sub process_url {
 	my ($url, $level, $outfile, $title) = @_;
 #	say "Processing: $url";
 	my $identifier;
 	$identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
-	open(PARTOUT, '>', "$identifier.tex") or die "Opening $identifier.tex failed: $! $?";
+	open(PARTOUT, '>', "epub_pages/$identifier.tex") or die "Opening $identifier.tex failed: $! $?";
 	binmode PARTOUT, ':utf8';
 	my $tree = new HTML::TreeBuilder;
-	my $mech = new WWW::Mechanize;
-	$mech->get($url);
-	my $htmlcontent = $mech->content;
+	open(my $htmlfile, '<:encoding(UTF-8)', "raw_html/$identifier.html");
+	read($htmlfile, my $htmlcontent, -s $htmlfile);
+	close $htmlfile;
 	#$htmlcontent =~ s#<br ?/>\s*?(\n|\r|\n\r)#<br />#g;
 #	$htmlcontent =~ s#<script type="text/javascript".*?>.*?</script>##g;
 	# hiragana, katakana and kanji pages have this in the middle of the content, HTML::TreeBuilder freaks out then
