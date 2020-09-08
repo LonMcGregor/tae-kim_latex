@@ -1,0 +1,25 @@
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf"
+         unique-identifier="BookId">
+     <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"
+                xmlns:opf="http://www.idpf.org/2007/opf">
+           <dc:title>Guide to Japanese</dc:title>
+           <dc:language>en</dc:language>
+           <dc:identifier id="BookId" opf:scheme="URI">
+           http://www.guidetojapanese.org/learn/category/grammar-guide/grammar-start/
+           </dc:identifier>
+           <dc:creator opf:role="aut">Tae Kim</dc:creator>
+           <dc:description>
+               Epub version of the guide to japanese website
+           </dc:description>
+     </metadata>
+     <manifest>
+        <item id="title" href="titlepage.xhtml" media-type="application/xhtml+xml" />
+        <item id="frontmatter" href="OEBPS/frontmatter.xhtml" media-type="application/xhtml+xml" />
+        <item id="c001" href="OEBPS/chapter001.xhtml" media-type="application/xhtml+xml" />
+     </manifest>
+     <spine toc="ncx">
+        <itemref idref="title" />
+        <itemref idref="frontmatter" />
+        <itemref idref="c001" />
+     </spine>
+ </package>

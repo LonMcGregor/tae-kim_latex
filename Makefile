@@ -25,7 +25,10 @@ epub_pages:
 	perl t2r.pl
 
 taekim.epub: epub_pages taekim_epub.head taekim_epub.tail epub_pages
-	echo not ready yet
+	cd epub
+	zip ../taekim.epub *
+	zip ../taekim.epub */*
+	cd ..
 
 texclean:
 	$(RM) *.aux *.log *.out *.toc
