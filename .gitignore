@@ -4,5 +4,10 @@
 *.log
 *.out
 *.toc
+*.epub
+*.pdf
 errorlog
 outlog
+epub_pages
+latex_pages
+raw_html

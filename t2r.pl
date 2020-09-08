@@ -27,7 +27,7 @@ use Carp;
 
 binmode STDOUT, ':utf8';
 
-my $output = "body.tex";
+my $output = "latex_pages/body.tex";
 open(OUT, '>', $output) or die "Opening $output failed: $! $?";
 
 OUT->autoflush(1);
@@ -102,7 +102,7 @@ sub process_url {
 #	say "Processing: $url";
 	my $identifier;
 	$identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
-	open(PARTOUT, '>', "epub_pages/$identifier.tex") or die "Opening $identifier.tex failed: $! $?";
+	open(PARTOUT, '>', "latex_pages/$identifier.tex") or die "Opening $identifier.tex failed: $! $?";
 	binmode PARTOUT, ':utf8';
 	my $tree = new HTML::TreeBuilder;
 	open(my $htmlfile, '<:encoding(UTF-8)', "raw_html/$identifier.html");
@@ -121,7 +121,7 @@ sub process_url {
 #	$content->dump;
 	say PARTOUT make_heading($level, $title);
 	say PARTOUT tree_to_latex($content, $level + 1);
-	say $outfile "\\input{$identifier}";
+	say $outfile "\\input{latex_pages/$identifier}";
 	$tree->delete();
 	close(PARTOUT);
 }
@@ -544,6 +544,7 @@ sub download_img {
 		$new_filename = "$filename.png";
 		$convert = 1;
 	}
+	$new_filename = "img/" . $new_filename;
 	if (-e $new_filename) {
 		printf "%20s: Skipped\n", $filename;
 		return $new_filename;
