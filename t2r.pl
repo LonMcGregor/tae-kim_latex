@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # Copyright (C) 2010-2012 Philipp Kerling
+# Copyright (C) 2020 Léon McGregor
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,11 +70,13 @@ sub walk_toc {
 			walk_toc($node, $level + 1, $outfile);
 		} elsif ($tag eq 'a') {
 			my $text = $node->as_text();
-			# Skip exercises for now
-			next if ($text =~ m/\bExercises\s*$/);
 			say "+ " x ($level + 1), $text;
 			download_url($node->attr("href"));
-			process_url($node->attr("href"), $level, $outfile, $text);
+			# Skip exercises for now
+			if ($text =~ m/\bExercises\s*$/){
+			} else {
+				process_url($node->attr("href"), $level, $outfile, $text);
+			}
 		} else {
 			carp "Unknown TOC tag $tag";
 		}

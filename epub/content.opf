@@ -5,7 +5,7 @@
            <dc:title>Guide to Japanese</dc:title>
            <dc:language>en</dc:language>
            <dc:identifier id="BookId" opf:scheme="URI">
-           http://www.guidetojapanese.org/learn/category/grammar-guide/grammar-start/
+           http://www.guidetojapanese.org/learn/category/grammar-guide/
            </dc:identifier>
            <dc:creator opf:role="aut">Tae Kim</dc:creator>
            <dc:description>
@@ -15,11 +15,11 @@
      <manifest>
         <item id="title" href="titlepage.xhtml" media-type="application/xhtml+xml" />
         <item id="frontmatter" href="OEBPS/frontmatter.xhtml" media-type="application/xhtml+xml" />
-        <item id="c001" href="OEBPS/chapter001.xhtml" media-type="application/xhtml+xml" />
+        <!--Manifest-->
      </manifest>
      <spine toc="ncx">
         <itemref idref="title" />
         <itemref idref="frontmatter" />
-        <itemref idref="c001" />
+        <!--Spine-->
      </spine>
  </package>
