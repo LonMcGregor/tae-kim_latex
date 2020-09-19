@@ -32,6 +32,11 @@ $| = 1; # ‽
 
 # Walk thru TOC, process book
 my $toc = get_contents();
+
+# these vars need to be outisde the walk_toc sub, as recursion happens within
+my $sectioncount;
+my $chaptercount = 2; # start at 2 as there are 2 pre-defined front matter chapters
+my $nextchapterstartssection = 0;
 walk_toc($toc);
 
 sub get_contents {
@@ -47,8 +52,6 @@ sub get_contents {
 	return $node;
 }
 
-my $chaptercount = 2; # start at 2 as there are 2 pre-defined front matter chapters
-# needs to be outisde the sub, or for some reason it doesn't increment properly
 sub walk_toc {
 	# Process the book according to the table of contents order given in $node
 	my ($tree) = @_;
@@ -63,18 +66,31 @@ sub walk_toc {
 			return;
 		}
 		my $tag = $node->tag;
-		if (elem_in_list($tag, ['li', 'div', 'span', 'ol', 'ul'])) {
+		if (elem_in_list($tag, ['li', 'div', 'span', 'ol'])) {
+			walk_toc($node);
+		} elsif ($tag eq 'ul') {
+			$sectioncount++;
+			$nextchapterstartssection = 1;
 			walk_toc($node);
 		} elsif ($tag eq 'a') {
-			++$chaptercount;
+			$chaptercount++;
 			my $text = $node->as_text();
+			if($nextchapterstartssection == 1){
+				$text = "Section $sectioncount: " . $text;
+				$nextchapterstartssection = 0;
+			}
 			my $url = $node->attr("href");
 			my $identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
 			say "+ $text @ raw_html/$identifier.html -> epub_pages/OEBPS/$identifier.xhtml";
 			# write the table of contents files
-			say MANIFEST "<item id=\"$identifier\" href=\"OEBPS/$identifier.xhtml\" media-type=\"application/xhtml+xml\" />";
-			say SPINE "<itemref idref=\"$identifier\" />";
-			say NAVMAP "<navPoint id=\"$identifier\" playOrder=\"$chaptercount\">\n<navLabel>\n<text>$text</text>\n</navLabel>\n<content src=\"OEBPS/$identifier.xhtml\"/>\n</navPoint>";
+			say MANIFEST "        <item id=\"$identifier\" href=\"OEBPS/$identifier.xhtml\" media-type=\"application/xhtml+xml\" />";
+			say SPINE "        <itemref idref=\"$identifier\" />";
+			say NAVMAP "        <navPoint id=\"$identifier\" playOrder=\"$chaptercount\">";
+			say NAVMAP "            <navLabel>";
+			say NAVMAP "                <text>$text</text>";
+			say NAVMAP "            </navLabel>";
+			say NAVMAP "            <content src=\"OEBPS/$identifier.xhtml\"/>";
+			say NAVMAP "        </navPoint>";
 			# process the chapter text
 			process_chapter($identifier, $text);
 		} else {
@@ -156,6 +172,7 @@ sub process_chapter {
 	del_id_from_article($articlecontent, "toc_container", $identifier);
 	del_class_from_article($articlecontent, "sharedaddy sd-sharing-enabled", $identifier);
 	replace_web_resources($articlecontent, 'iframe');
+	my $encoded_title = encode_entities($title);
 
 	# write file
 	open(my $articlefile, '>>:encoding(UTF-8)', "epub_pages/OEBPS/$identifier.xhtml") or die;
@@ -168,6 +185,7 @@ sub process_chapter {
 	say $articlefile '<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>';
 	say $articlefile '</head>';
 	say $articlefile '<body>';
+	say $articlefile "<h1>$encoded_title</h1>";
 	say $articlefile $articlecontent->as_HTML('',"\t",{});
 	say $articlefile '</body></html>';
 	close $articlefile;

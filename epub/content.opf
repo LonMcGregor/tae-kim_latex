@@ -2,17 +2,19 @@
          unique-identifier="BookId">
      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"
                 xmlns:opf="http://www.idpf.org/2007/opf">
-           <dc:title>Guide to Japanese</dc:title>
-           <dc:language>en</dc:language>
-           <dc:identifier id="BookId" opf:scheme="URI">
-           http://www.guidetojapanese.org/learn/category/grammar-guide/
-           </dc:identifier>
-           <dc:creator opf:role="aut">Tae Kim</dc:creator>
-           <dc:description>
-               Epub version of the guide to japanese website
-           </dc:description>
+            <dc:title>Guide to Japanese</dc:title>
+            <dc:language>en</dc:language>
+            <dc:identifier id="BookId" opf:scheme="URI">
+            http://www.guidetojapanese.org/learn/category/grammar-guide/
+            </dc:identifier>
+            <dc:creator opf:role="aut">Tae Kim</dc:creator>
+            <dc:description>
+                Epub version of the guide to japanese website
+            </dc:description>
+            <dc:rights>Creative Commons BY-NC-SA</dc:rights>
      </metadata>
      <manifest>
+        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
         <item id="title" href="titlepage.xhtml" media-type="application/xhtml+xml" />
         <item id="frontmatter" href="OEBPS/frontmatter.xhtml" media-type="application/xhtml+xml" />
         <!--Manifest-->

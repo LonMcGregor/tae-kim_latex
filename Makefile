@@ -23,15 +23,15 @@ taekim.epub:
 	rm -r epub_pages
 	cp -r epub epub_pages
 	perl t3r.pl
-	head epub_pages/content.opf -n17 > blah
+	head epub_pages/content.opf -n19 > blah
 	cat manifest.txt >> blah
-	head epub_pages/content.opf -n22 | tail -n4 >> blah
+	head epub_pages/content.opf -n24 | tail -n4 >> blah
 	cat spine.txt >> blah
-	tail epub_pages/content.opf -n3 >> blah
+	tail epub_pages/content.opf -n2 >> blah
 	mv blah epub_pages/content.opf
 	head epub_pages/toc.ncx -n27 > blah2
 	cat navmap.txt >> blah2
-	tail epub_pages/toc.ncx -n3 >> blah2
+	tail epub_pages/toc.ncx -n2 >> blah2
 	mv blah2 epub_pages/toc.ncx
 	rm navmap.txt spine.txt manifest.txt
 	cd epub_pages && zip ../taekim.epub *
