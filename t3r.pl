@@ -47,6 +47,8 @@ sub get_contents {
 	return $node;
 }
 
+my $chaptercount = 2; # start at 2 as there are 2 pre-defined front matter chapters
+# needs to be outisde the sub, or for some reason it doesn't increment properly
 sub walk_toc {
 	# Process the book according to the table of contents order given in $node
 	my ($tree) = @_;
@@ -54,7 +56,6 @@ sub walk_toc {
 	open(MANIFEST, ">>:encoding(UTF-8)", "manifest.txt") or die "Opening manifest Failed";
 	open(SPINE, ">>:encoding(UTF-8)", "spine.txt") or die "Opening spine Failed";
 	open(NAVMAP, ">>:encoding(UTF-8)", "navmap.txt") or die "Opening nav Failed";
-	my $chaptercount = 2; # start at 2 as there are 2 pre-defined front matter chapters
 	foreach my $node (@nodes) {
 		my $nodeclass = $node->attr("class");
 		if ($nodeclass and $nodeclass eq "sym"){
@@ -65,8 +66,7 @@ sub walk_toc {
 		if (elem_in_list($tag, ['li', 'div', 'span', 'ol', 'ul'])) {
 			walk_toc($node);
 		} elsif ($tag eq 'a') {
-			$chaptercount++; # TODO this isn't incrementing
-			say $chaptercount;
+			++$chaptercount;
 			my $text = $node->as_text();
 			my $url = $node->attr("href");
 			my $identifier = $1 if ($url =~ m@/([^/]+?)/?$@);
